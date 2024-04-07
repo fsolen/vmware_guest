@@ -1,0 +1,57 @@
+ - name: Clone a virtual machine from a template and power it on
+   hosts: localhost
+   connection: local
+   tasks:
+    - name: Clone a virtual machine from a template
+      vmware_guest:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        name: "{{ vm_name }}"
+        template: "{{ template_name }}"
+        folder: "{{ vm_folder }}"
+        datastore: "{{ datastore }}"
+        state: powered-off
+        datacenter: "{{ datacenter }}"
+        hardware:
+          memory_mb: "{{ ram_mb }}"
+          num_cpus: "{{ num_cpus }}"
+          scsi: paravirtual
+        disk:
+          - size_gb: "{{ disk_size_gb }}"
+#           datastore: "{{ datastore }}"
+            type: thick
+            autoselect_datastore: true
+        networks:
+          - name: "{{ network_name }}"
+            ip: "{{ static_ip }}"
+            netmask: "{{ netmask }}"
+            gateway: "{{ gateway }}"
+            dns_servers: "{{ dns_servers }}"
+        customization:
+          hostname: "{{ vm_name }}"
+          dns_servers: "{{ dns_servers }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Power on the cloned virtual machine
+      vmware_guest_powerstate:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        name: "{{ vm_name }}"
+        state: powered-on
+      delegate_to: localhost
+      run_once: true
+
+    - name: Wait for VM to be ready
+      wait_for:
+        host: "{{ static_ip }}"
+        port: 22
+        delay: 10
+        timeout: 300
+        sleep: 5
+      delegate_to: localhost
+      run_once: true
