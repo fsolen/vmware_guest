@@ -1,0 +1,15 @@
+- name: Add disks to virtual machine
+  vmware_guest_disk:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    datacenter: "{{ datacenter_name }}"
+    name: "{{ vm_name }}"
+    disk:
+      - size_gb: "{{ disk_size_gb }}"
+        type: thick
+        datastore: "{{ datastore }}"
+      #  autoselect_datastore: true
+        state: present
+  delegate_to: localhost
+  register: disk_facts
