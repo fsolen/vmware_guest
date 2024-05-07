@@ -1,0 +1,82 @@
+---
+- name: Distribute VMs evenly across ESXi hosts based on "fs" tag category
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Gather facts about all VMs
+      community.vmware.vmware_vm_facts:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+      delegate_to: localhost
+      register: vm_facts
+
+    - name: Get tags for VMs
+      community.vmware.vmware_tag_facts:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        object_ids: "{{ vm_facts.virtual_machines }}"
+      delegate_to: localhost
+      register: tag_facts
+
+    - name: Find VMs with the same tag in "fs" tag category
+      set_fact:
+        vms_with_fs_tag: []
+
+    - name: Loop through VMs and their tags
+      loop: "{{ tag_facts.tagged_objects | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      vars:
+        vm_id: "{{ item.key }}"
+        vm_tags: "{{ item.value.tags }}"
+      when: vm_tags | length > 0
+      block:
+        - name: Check if VM has the tag in "fs" category
+          loop: "{{ vm_tags }}"
+          loop_control:
+            label: "{{ item.key }}"
+          vars:
+            tag_name: "{{ item.key }}"
+            tag_details: "{{ item.value }}"
+          when: tag_details.category == "fs"
+          block:
+            - name: Add VMs with the tag in "fs" category to the list
+              set_fact:
+                vms_with_fs_tag: "{{ vms_with_fs_tag + [vm_id] }}"
+
+    - name: Calculate distribution of VMs across ESXi hosts
+      set_fact:
+        esxi_hosts_distribution: "{{ vms_with_fs_tag | map('extract', vm_facts.virtual_machines) | map(attribute='esxi_hostname') | select('distinct') | list | count_per_host(vm_facts.virtual_machines) }}"
+
+    - name: Move VMs to achieve even distribution
+      loop: "{{ vms_with_fs_tag }}"
+      loop_control:
+        label: "{{ item }}"
+      vars:
+        vm_id: "{{ item }}"
+      block:
+        - name: Find the ESXi host with the fewest VMs
+          set_fact:
+            target_esxi_host: "{{ esxi_hosts_distribution | dict2items | sort(attribute='value') | first | first }}"
+
+        - name: Get current ESXi host of the VM
+          set_fact:
+            current_esxi_host: "{{ vm_facts.virtual_machines[vm_id].esxi_hostname }}"
+
+        - name: Check if the current ESXi host has fewer VMs
+          when: current_esxi_host != target_esxi_host
+
+        - name: Move VM to achieve even distribution
+          community.vmware.vmware_vmotion:
+            hostname: "{{ vcenter_hostname }}"
+            username: "{{ vcenter_username }}"
+            password: "{{ vcenter_password }}"
+            validate_certs: no
+            name: "{{ vm_facts.virtual_machines[vm_id].name }}"
+            state: present
+            dest_host: "{{ target_esxi_host }}"
+          delegate_to: localhost
