@@ -160,4 +160,3 @@
     - name: Print host creation result
       debug:
         msg: "Host creation response: {{ zabbix_host_create.json }}"
-
