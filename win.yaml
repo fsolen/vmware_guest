@@ -53,7 +53,7 @@
         sleep: 5
       delegate_to: localhost
       run_once: true
-      
+---
     - name: Get Zabbix API authentication token
       uri:
         url: "{{ zabbix_api_url }}"
@@ -157,3 +157,27 @@
     - name: Print host creation result
       debug:
         msg: "Host creation response: {{ zabbix_host_create.json }}"
+---
+- name: Add A record to Microsoft DNS Server
+  hosts: "{{ dns_servers }}"
+  gather_facts: no
+  vars:
+    dns_zone: "{{ dns_zone }}"
+    record_name: "{{ vm_name }}"
+    record_ip: "{{ static_ip }}"
+    dns_ttl: 3600
+
+  tasks:
+    - name: Add A record to DNS zone
+      community.windows.win_dns_record:
+        name: "{{ record_name }}"
+        zone: "{{ dns_zone }}"
+        state: present
+        type: A
+        value: "{{ record_ip }}"
+        ttl: "{{ dns_ttl }}"
+      register: dns_record
+
+    - name: Print DNS record creation result
+      debug:
+        msg: "DNS record creation result: {{ dns_record }}"
