@@ -115,8 +115,8 @@
 
     - name: Set template ID fact
       set_fact:
-        zabbix_template: "{{ zabbix_tmpl.json.result[0].templateid }}"
- 
+        template_id: "{{ zabbix_tmpl.json.result[0].templateid }}"
+
     - name: Add host to Zabbix
       uri:
         url: "{{ zabbix_api_url }}"
