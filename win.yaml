@@ -53,3 +53,111 @@
         sleep: 5
       delegate_to: localhost
       run_once: true
+
+- name: Add host to Zabbix
+  hosts: localhost
+  gather_facts: no
+  vars:
+    zabbix_api_url: "http://zabbix.tzla.sahibindenlocal.net/api_jsonrpc.php"
+    zabbix_user: "{{ zabbix_user }}"
+    zabbix_password: "{{ zabbix_password }}"
+    host_name: "{{ vm_name }}"
+    host_ip: "{{ static_ip }}"
+    zabbix_host_group: "{{ zabbix_host_group }}"
+    zabbix_template: "10001"  # Change this to the appropriate template ID in your Zabbix
+
+  tasks:
+    - name: Get Zabbix API authentication token
+      uri:
+        url: "{{ zabbix_api_url }}"
+        method: POST
+        body_format: json
+        body:
+          jsonrpc: "2.0"
+          method: "user.login"
+          params:
+            user: "{{ zabbix_user }}"
+            password: "{{ zabbix_password }}"
+          id: 1
+          auth: null
+        headers:
+          Content-Type: "application/json"
+      register: auth_response
+      
+     - name: Set Zabbix auth token fact
+      set_fact:
+        zabbix_auth_token: "{{ auth_response.json.result }}"
+
+    - name: Get host group ID based on name
+      uri:
+        url: "{{ zabbix_api_url }}"
+        method: POST
+        body_format: json
+        body:
+          jsonrpc: "2.0"
+          method: "hostgroup.get"
+          params:
+            filter:
+              name: ["{{ zabbix_host_group }}"]
+          auth: "{{ zabbix_auth_token }}"
+          id: 1
+        headers:
+          Content-Type: "application/json"
+      register: zabbix_hg
+
+    - name: Set host group ID fact
+      set_fact:
+        group_id: "{{ zabbix_hg.json.result[0].groupid }}"
+
+    - name: Get template ID based on name
+      uri:
+        url: "{{ zabbix_api_url }}"
+        method: POST
+        body_format: json
+        body:
+          jsonrpc: "2.0"
+          method: "template.get"
+          params:
+            filter:
+              host: ["{{ template_name }}"]
+          auth: "{{ zabbix_auth_token }}"
+          id: 1
+        headers:
+          Content-Type: "application/json"
+      register: zabbix_tmpl
+
+    - name: Set template ID fact
+      set_fact:
+        zabbix_template: "{{ zabbix_tmpl.json.result[0].templateid }}"
+ 
+    - name: Add host to Zabbix
+      uri:
+        url: "{{ zabbix_api_url }}"
+        method: POST
+        body_format: json
+        body:
+          jsonrpc: "2.0"
+          method: "host.create"
+          params:
+            host: "{{ host_name }}"
+            interfaces:
+              - type: 1
+                main: 1
+                useip: 1
+                ip: "{{ host_ip }}"
+                dns: ""
+                port: "10050"
+            groups:
+              - groupid: "{{ group_id }}"
+            templates:
+              - templateid: "{{ template_id }}"
+          auth: "{{ zabbix_auth_token }}"
+          id: 1
+        headers:
+          Content-Type: "application/json"
+      register: zabbix_host_create
+
+    - name: Print host creation result
+      debug:
+        msg: "Host creation response: {{ zabbix_host_create.json }}"
+
