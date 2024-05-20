@@ -111,7 +111,7 @@
           method: "template.get"
           params:
             filter:
-              host: ["{{ template_name }}"]
+              host: ["{{ zabbix_template }}"]
           auth: "{{ zabbix_auth_token }}"
           id: 1
         headers:
@@ -120,7 +120,7 @@
 
     - name: Fail if no template was found
       fail:
-        msg: "No template found with the name '{{ template_name }}'."
+        msg: "No template found with the name '{{ zabbix_template }}'."
       when: zabbix_tmpl.json.result | length == 0
 
     - name: Set template ID fact
