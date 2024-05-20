@@ -58,7 +58,7 @@
   hosts: localhost
   gather_facts: no
   vars:
-    zabbix_api_url: "http://zabbix.tzla.sahibindenlocal.net/api_jsonrpc.php"
+    zabbix_api_url: "{{ zabbix_server }}"
     zabbix_user: "{{ zabbix_user }}"
     zabbix_password: "{{ zabbix_password }}"
     host_name: "{{ vm_name }}"
