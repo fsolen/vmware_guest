@@ -64,7 +64,7 @@
     host_name: "{{ vm_name }}"
     host_ip: "{{ static_ip }}"
     zabbix_host_group: "{{ zabbix_host_group }}"
-    zabbix_template: "10001"  # Change this to the appropriate template ID in your Zabbix
+    zabbix_template: "{{ zabbix_template }}"
 
   tasks:
     - name: Get Zabbix API authentication token
