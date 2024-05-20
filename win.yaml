@@ -53,20 +53,7 @@
         sleep: 5
       delegate_to: localhost
       run_once: true
----
-- name: Add host to Zabbix
-  hosts: localhost
-  gather_facts: no
-  vars:
-    zabbix_api_url: "{{ zabbix_server }}"
-    zabbix_user: "{{ zabbix_user }}"
-    zabbix_password: "{{ zabbix_password }}"
-    host_name: "{{ vm_name }}"
-    host_ip: "{{ static_ip }}"
-    zabbix_host_group: "{{ zabbix_host_group }}"
-    zabbix_template: "{{ zabbix_template }}"
-
-  tasks:
+      
     - name: Get Zabbix API authentication token
       uri:
         url: "{{ zabbix_api_url }}"
