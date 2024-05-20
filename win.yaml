@@ -53,7 +53,7 @@
         sleep: 5
       delegate_to: localhost
       run_once: true
-
+---
 - name: Add host to Zabbix
   hosts: localhost
   gather_facts: no
