@@ -70,7 +70,7 @@
         headers:
           Content-Type: "application/json"
       register: auth_response
-      
+
     - name: Set Zabbix auth token fact
       set_fact:
         zabbix_auth_token: "{{ auth_response.json.result }}"
@@ -92,6 +92,11 @@
           Content-Type: "application/json"
       register: zabbix_hg
 
+    - name: Fail if no host group was found
+      fail:
+        msg: "No host group found with the name '{{ zabbix_host_group }}'."
+      when: zabbix_hg.json.result | length == 0
+
     - name: Set host group ID fact
       set_fact:
         group_id: "{{ zabbix_hg.json.result[0].groupid }}"
@@ -112,6 +117,11 @@
         headers:
           Content-Type: "application/json"
       register: zabbix_tmpl
+
+    - name: Fail if no template was found
+      fail:
+        msg: "No template found with the name '{{ template_name }}'."
+      when: zabbix_tmpl.json.result | length == 0
 
     - name: Set template ID fact
       set_fact:
