@@ -136,12 +136,12 @@
           jsonrpc: "2.0"
           method: "host.create"
           params:
-            host: "{{ host_name }}"
+            host: "{{ vm_name }}"
             interfaces:
               - type: 1
                 main: 1
                 useip: 1
-                ip: "{{ host_ip }}"
+                ip: "{{ static_ip }}"
                 dns: ""
                 port: "10050"
             groups:
