@@ -71,7 +71,7 @@
           Content-Type: "application/json"
       register: auth_response
       
-     - name: Set Zabbix auth token fact
+    - name: Set Zabbix auth token fact
       set_fact:
         zabbix_auth_token: "{{ auth_response.json.result }}"
 
