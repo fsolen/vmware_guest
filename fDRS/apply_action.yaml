@@ -1,0 +1,18 @@
+- name: Apply optimization actions
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Load action plan
+      slurp:
+        src: /tmp/action_plan.json
+      register: action_plan
+
+    - name: Migrate VMs based on action plan
+      vmware_vm_migrate:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        vm_id: "{{ item.vm_id }}"
+        target_host: "{{ item.target_host }}"
+      loop: "{{ action_plan.content | b64decode | from_json }}"
