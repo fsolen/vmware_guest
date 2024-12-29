@@ -1,11 +1,47 @@
-- name: Apply optimization actions
+- name: Analyze metrics and apply actions
   hosts: localhost
   gather_facts: no
+  vars:
+    vm_metrics_path: /tmp/vm_metrics.json
+    host_metrics_path: /tmp/host_metrics.json
+    action_plan_path: /tmp/action_plan.json
   tasks:
-    - name: Load action plan
-      slurp:
-        src: /tmp/action_plan.json
-      register: action_plan
+    - name: Collect VM metrics
+      vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+      register: vm_info
+
+    - name: Collect Host metrics
+      vmware_host_facts:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+      register: host_info
+
+    - name: Save VM metrics to file
+      copy:
+        content: "{{ vm_info.virtual_machines | to_json }}"
+        dest: "{{ vm_metrics_path }}"
+
+    - name: Save Host metrics to file
+      copy:
+        content: "{{ host_info.esxi_hosts | to_json }}"
+        dest: "{{ host_metrics_path }}"
+
+    - name: Run metrics analysis script
+      command: >
+        python3 /path/to/analyze_metrics.py
+        {{ vm_metrics_path }} {{ host_metrics_path }}
+      register: analysis_result
+
+    - name: Save action plan to file
+      copy:
+        content: "{{ analysis_result.stdout }}"
+        dest: "{{ action_plan_path }}"
 
     - name: Migrate VMs based on action plan
       vmware_vm_migrate:
@@ -15,4 +51,4 @@
         validate_certs: no
         vm_id: "{{ item.vm_id }}"
         target_host: "{{ item.target_host }}"
-      loop: "{{ action_plan.content | b64decode | from_json }}"
+      loop: "{{ lookup('file', action_plan_path) | from_json }}"
